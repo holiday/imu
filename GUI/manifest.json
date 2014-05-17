@@ -1,0 +1,13 @@
+{
+  "name": "IMU GUI",
+  "description": "GUI to display orientation data",
+  "version": "0.1",
+  "app": {
+    "background": {
+      "scripts": ["background.js"]
+    }
+  },
+  "permissions": [
+  	"serial"
+  ]
+}
