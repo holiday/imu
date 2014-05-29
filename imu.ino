@@ -1,13 +1,19 @@
 #include <Wire.h>
-#include "Kalman.h" // Source: https://github.com/TKJElectronics/KalmanFilter
-
-Kalman kalmanX;
-Kalman kalmanY;
+#include "Motors.h"
+#include "Kalman.h"
 
 #define gyroAddress 0x68
 #define adxlAddress 0x53
 
-double zeroValue[5] = {0,0,0,0,0};
+Motors motors(9, 10, 50, 2180, 4000);
+
+Kalman kalmanX;
+Kalman kalmanY;
+
+String incomingStr;
+char incomingChar;
+
+double zeroValue[5] = {10,15,-20,56,14};
 
 /* All the angles start at 180 degrees */
 double gyroXangle = 180;
@@ -46,8 +52,8 @@ void loop() {
     compAngleX = (0.93 * (compAngleX + (gyroXrate * (double)(micros() - timer) / 1000000))) + (0.07 * accXangle);
     compAngleY = (0.93 * (compAngleY + (gyroYrate * (double)(micros() - timer) / 1000000))) + (0.07 * accYangle);
 
-    double xAngle = kalmanX.getAngle(accXangle, gyroXrate, (double)(micros() - timer)); // calculate the angle using a Kalman filter
-    double yAngle = kalmanY.getAngle(accYangle, gyroYrate, (double)(micros() - timer)); // calculate the angle using a Kalman filter
+    double xAngle = kalmanX.getAngle(accXangle, gyroXrate, (double)(micros() - timer) / 1000000); // calculate the angle using a Kalman filter
+    double yAngle = kalmanY.getAngle(accYangle, gyroYrate, (double)(micros() - timer) / 1000000); // calculate the angle using a Kalman filter
 
     timer = micros();
 
@@ -65,10 +71,52 @@ void loop() {
 
     Serial.print(xAngle); Serial.print(",");
     Serial.print(yAngle);
-
+    
     Serial.print("\n");
 
+    //listen for incoming messages
+    serial_loop();
     delay(10);
+}
+
+void serial_loop() {
+    while(Serial.available() > 0){
+        incomingChar = Serial.read();
+
+        if(incomingChar == 10){
+            handle_message(incomingStr);
+            incomingStr = "";
+        }else{
+            incomingStr += char(incomingChar);
+        }
+    }
+}
+
+void handle_message(String msg){
+
+    if(msg == "init_pwm"){
+        Serial.println("Initialized PWM");
+        motors.init_pwm();
+    }else if(msg == "throttle_high"){
+        Serial.println("High throttle");
+        motors.throttle_high();
+    }else if(msg == "throttle_low"){
+        Serial.println("Low throttle");
+        motors.throttle_low();
+    }else if(msg.substring(0, 15) == "set_speed_north"){
+        //set the new speed
+        Serial.print("Setting speed north: ");
+        Serial.println(msg.substring(16).toInt());
+        motors.set_speed_north(msg.substring(16).toInt() / 100.0);
+    }else if(msg.substring(0, 15) == "set_speed_south"){
+        //set the new speed
+        Serial.print("Setting speed south: ");
+        Serial.println(msg.substring(16).toInt());
+        motors.set_speed_north(msg.substring(16).toInt() / 100.0);
+    }else if(msg == "stop_pwm") {
+        Serial.print("Stopping PWM (may require re-arming)");
+        motors.stop_pwm();
+    }
 }
 
 void i2cWrite(uint8_t address, uint8_t registerAddress, uint8_t data) {
