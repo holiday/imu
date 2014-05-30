@@ -3,7 +3,6 @@
 	<title></title>
 	<link rel="stylesheet" type="text/css" href="css/prism.css">
 	<link rel="stylesheet" type="text/css" href="css/style.css">
-	<script type="text/javascript" src="js/jquery-2.1.1.min.js"></script>
 </head>
 <body>
 
@@ -35,13 +34,13 @@
 			<fieldset class="speed-controls">
 				<legend>Speed Controls</legend>
 				<div class="slider">
-					<input id="defaultSlider" type="range" min="0" max="100" value="0" />
-					<p class="note">North Speed: <span id="currentValue">0</span></p>
+					<input id="north-motor" type="range" min="0" max="100" value="0" />
+					<p class="note">North Speed: <span id="north-motor-value">0</span></p>
 				</div>
 				
 				<div class="slider">
-					<input id="defaultSlider" type="range" min="0" max="100" value="0" />
-					<p class="note">South Speed: <span id="currentValue">0</span></p>
+					<input id="south-motor" type="range" min="0" max="100" value="0" />
+					<p class="note">South Speed: <span id="south-motor-value">0</span></p>
 				</div>
 
 				<div class="slider">
@@ -104,6 +103,8 @@
 		</section>
 	</div>
 
+	<script type="text/javascript" src="js/jquery-2.1.1.min.js"></script>
+	<script type="text/javascript" src="js/rangeslider.min.js"></script>
 	<script type="text/javascript" src="js/script.js"></script>
 </body>
 </html>

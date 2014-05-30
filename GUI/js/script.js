@@ -17,20 +17,27 @@ var GUI = (function ($) {
         self.cube3;
         self.cube4;
 
-        self.stringReceived  = "";
-        self.send_lock       = 1; //1 = you can send, 0 = you cant
-        self.select_devices  = $('#select-devices');
-        self.disconnect      = $('#disconnect');
-        self.init_pwm_btn    = $('#init_pwm');
-        self.stop_pwm_btn    = $('#stop_pwm');
-        self.throttle_high   = $('#throttle_high');
-        self.throttle_low    = $('#throttle_low');
-        self.arduino_console = $('#console');
-        self.data_rec        = [];
-        self.cube1           = $("#cube-1");
-        self.cube2           = $("#cube-2");
-        self.cube3           = $("#cube-3");
-        self.cube4           = $("#cube-4");
+        self.north_motor_speed;
+        self.south_motor_speed;
+
+        self.stringReceived     = "";
+        self.send_lock          = 1; //1 = you can send, 0 = you cant
+        self.select_devices     = $('#select-devices');
+        self.disconnect         = $('#disconnect');
+        self.init_pwm_btn       = $('#init_pwm');
+        self.stop_pwm_btn       = $('#stop_pwm');
+        self.throttle_high      = $('#throttle_high');
+        self.throttle_low       = $('#throttle_low');
+        self.north_motor_slider = $('#north-motor');
+        self.north_motor_value  = $('#north-motor-value');
+        self.south_motor_slider = $('#south-motor');
+        self.south_motor_value  = $('#south-motor-value')
+        self.arduino_console    = $('#console');
+        self.data_rec           = [];
+        self.cube1              = $("#cube-1");
+        self.cube2              = $("#cube-2");
+        self.cube3              = $("#cube-3");
+        self.cube4              = $("#cube-4");
 
         /*************************/
         /* Listen for GUI Events */
@@ -77,6 +84,18 @@ var GUI = (function ($) {
             e.preventDefault();
             self.send_message(self, "throttle_low");
         });
+
+        /*listen for motor north slider*/
+        self.north_motor_slider.change(function(e){
+            self.north_motor_value.text(e.currentTarget.value);
+            self.send_message(self, "set_speed_north: " + e.currentTarget.value);
+        });
+
+        /*listen for motor south slider*/
+        self.south_motor_slider.change(function(e){
+            self.south_motor_value.text(e.currentTarget.value);
+            self.send_message(self, "set_speed_south: " + e.currentTarget.value);
+        });
     }
 
     GUI.prototype.on_connect = function(self, connectionInfo) {
@@ -100,6 +119,10 @@ var GUI = (function ($) {
         });
     };
 
+    GUI.prototype.is_connected = function(self) {
+        return self.conId > 0;
+    };
+
     GUI.prototype.arduino_console_log = function(self, msg) {
         self.arduino_console.val(self.arduino_console.val() + '\n' + '>' + msg);
         //scroll console to bottom
@@ -120,13 +143,15 @@ var GUI = (function ($) {
     
     GUI.prototype.send_message = function(self, str) {
         if(self.conId && self.send_lock){
-            self.send_lock = 0;
+            self.send_lock = 0; //prevent button spamming
             chrome.serial.send(self.conId, self.str2ab(str+'\n'), function(sendInfo){
                 if(sendInfo.bytesSent > 0){
                     self.arduino_console_log(self, str);
                 }
                 self.send_lock = 1;
             });
+        }else{
+            self.arduino_console_log(self, "Error, you are not connected");
         }
     };
 
@@ -157,7 +182,6 @@ var GUI = (function ($) {
                 if(self.stringReceived.substring(0, 6) == "Data: " && self.stringReceived.length <= 62){
                     //split on comma
                     self.data_rec = self.stringReceived.substring(6).split(",");
-                    console.log(self.data_rec);
                     //graph data
                     self.cube1.css("-webkitTransform", "rotateX(" + (-self.data_rec[0] - 180) + "deg) rotateZ(" + (self.data_rec[1] - 180) + "deg)");
                     self.cube2.css("-webkitTransform", "rotateX(" + (-self.data_rec[2] - 180) + "deg) rotateZ(" + (self.data_rec[3] - 180) + "deg)");
