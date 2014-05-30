@@ -5,7 +5,7 @@
 #define gyroAddress 0x68
 #define adxlAddress 0x53
 
-Motors motors(9, 10, 50, 2180, 4000);
+Motors motors(9, 10, 20, 2000, 4000);
 
 Kalman kalmanX;
 Kalman kalmanY;
@@ -35,6 +35,9 @@ void setup(){
 
     i2cWrite(gyroAddress, 0x16, 0x1A); // this puts your gyro at +-2000deg/sec  and 98Hz Low pass filter
     i2cWrite(gyroAddress, 0x15, 0x09); // this sets your gyro at 100Hz sample rate
+
+    motors.set_speed_north(0);
+    motors.set_speed_south(0);
 
     timer = micros();
 }
@@ -111,7 +114,7 @@ void handle_message(String msg){
         //set the new speed
         Serial.print("Setting speed south: ");
         Serial.println(msg.substring(16).toInt());
-        motors.set_speed_north(msg.substring(16).toInt() / 100.0);
+        motors.set_speed_south(msg.substring(16).toInt() / 100.0);
     }else if(msg == "stop_pwm") {
         Serial.print("Stopping PWM (may require re-arming)");
         motors.stop_pwm();

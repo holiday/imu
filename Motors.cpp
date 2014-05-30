@@ -2,7 +2,7 @@
   Motors.cpp - Library for running motors on 20A ESC using 16 bit Timer1.
   Created by Rashaad Ramdeen, May 2014.
 */
-#include "Arduino.h"
+
 #include "Motors.h"
 
 Motors::Motors(int north_pin, int south_pin, int frequency_hz, int esc_low, int esc_high)
@@ -11,9 +11,11 @@ Motors::Motors(int north_pin, int south_pin, int frequency_hz, int esc_low, int 
 	pinMode(south_pin, OUTPUT);
 	_north_pin = north_pin;
 	_south_pin = south_pin;
-	_icr1 = (16000000/(frequency_hz * 8)) - 1;
-	_esc_low = _esc_low;
-	_esc_high = _esc_high;
+	_icr1 = (16000000/(frequency_hz*8)) - 1;
+	_esc_low = esc_low;
+	_esc_high = esc_high;
+	_north_speed = esc_low;
+	_south_speed = esc_low;
 }
 
 void Motors::init_pwm()

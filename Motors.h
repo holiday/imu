@@ -6,10 +6,14 @@
 #ifndef Motors_h
 #define Motors_h
 
+#include "Arduino.h"
 
 class Motors
 {
 	public:
+		int _north_speed;
+		int _south_speed;
+
 		Motors(int north_pin, int south_pin, int frequency_hz, int esc_low, int esc_high);
 		void init_pwm();
 		void stop_pwm();
@@ -24,8 +28,6 @@ class Motors
 		int _north_pin;
 		int _south_pin;
 		int _icr1;
-		int _north_speed;
-		int _south_speed;
 };
 
 #endif
