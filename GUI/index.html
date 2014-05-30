@@ -3,7 +3,7 @@
 	<title></title>
 	<link rel="stylesheet" type="text/css" href="css/prism.css">
 	<link rel="stylesheet" type="text/css" href="css/style.css">
-	<script type="text/javascript" src="js/prototype.js"></script>
+	<script type="text/javascript" src="js/jquery-2.1.1.min.js"></script>
 </head>
 <body>
 
@@ -13,18 +13,23 @@
 		<form>
 			<fieldset class="serial">
 				<legend>Serial Communcation</legend>
-				<select id="devices">
+				<select id="select-devices">
 					<option>Select device...</option>
 				</select>
 				<button id="disconnect" disabled="disabled">Disconnect</button>
 			</fieldset>
 
-			<fieldset class="serial">
+			<fieldset>
+				<legend>Console</legend>
+				<textarea id="console" readonly>>Hello World!</textarea>
+			</fieldset>
+
+			<fieldset class="initializations">
 				<legend>Initialization</legend>
-				<button>Init PWM</button>
-				<button>Stop PWM</button>
-				<button>Throttle HIGH</button>
-				<button>Throttle LOW</button>
+				<button id="init_pwm">Init PWM</button>
+				<button id="stop_pwm">Stop PWM</button>
+				<button id="throttle_high">Throttle HIGH</button>
+				<button id="throttle_low">Throttle LOW</button>
 			</fieldset>
 
 			<fieldset class="speed-controls">
@@ -98,7 +103,6 @@
 			</div>
 		</section>
 	</div>
-	
 
 	<script type="text/javascript" src="js/script.js"></script>
 </body>

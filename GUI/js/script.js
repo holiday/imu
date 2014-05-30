@@ -1,83 +1,188 @@
-var init = function () {
+var GUI = (function ($) {
 
-    /* List serial devices */
-    var select, option, device, conId, disconnected, stringReceived, cube1, cube2, cube3, cube4;
-    select = document.getElementById('devices');
-    disconnected = document.getElementById('disconnect');
+    function GUI(){
+        var self = this; //prevent namespace conflicts with "this" in closures
+        /* List serial devices */
+        self.select_devices;
+        self.arduino_console;
+        self.send_lock;
+        self.init_pwm_btn;
+        self.option;
+        self.device;
+        self.conId;
+        self.disconnect;
+        self.stringReceived;
+        self.cube1;
+        self.cube2; 
+        self.cube3;
+        self.cube4;
 
-    chrome.serial.getDevices(function (devices) {
+        self.stringReceived  = "";
+        self.send_lock       = 1; //1 = you can send, 0 = you cant
+        self.select_devices  = $('#select-devices');
+        self.disconnect      = $('#disconnect');
+        self.init_pwm_btn    = $('#init_pwm');
+        self.stop_pwm_btn    = $('#stop_pwm');
+        self.throttle_high   = $('#throttle_high');
+        self.throttle_low    = $('#throttle_low');
+        self.arduino_console = $('#console');
+        self.data_rec        = [];
+        self.cube1           = $("#cube-1");
+        self.cube2           = $("#cube-2");
+        self.cube3           = $("#cube-3");
+        self.cube4           = $("#cube-4");
 
-        devices.each(function (port) {
-            option = document.createElement("option");
-            option.value = port.path;
-            option.text = port.path;
-            select.add(option);
+        /*************************/
+        /* Listen for GUI Events */
+        /*************************/
+
+        /*load all serial devices on serial port*/
+        self.get_devices(self);
+
+        /*Select serial device change */
+        self.select_devices.change(function(e) {
+            
+            self.device = self.select_devices.find(":selected").text();
+
+            chrome.serial.connect(self.device, {
+                bitrate: 115200,
+                dataBits: "eight",
+                parityBit: "no",
+                stopBits: "one"
+            }, function(connectionInfo){
+                self.on_connect(self, connectionInfo);
+            });
         });
-    });
 
-    /*Select serial device change */
-    select.onchange = function (e) {
-        device = select.options[select.selectedIndex].value;
-        chrome.serial.connect(device, {
-            bitrate: 115200,
-            dataBits: "eight",
-            parityBit: "no",
-            stopBits: "one"
-        }, onConnect);
+        /*init pwm */
+        self.init_pwm_btn.click(function(e){
+            e.preventDefault();
+            self.send_message(self, "init_pwm");
+        });
+
+        /*flatline pulses*/
+        self.stop_pwm_btn.click(function(e){
+            e.preventDefault();
+            self.send_message(self, "stop_pwm");
+        });
+
+        /*send a high throttle signal*/
+        self.throttle_high.click(function(e){
+            e.preventDefault();
+            self.send_message(self, "throttle_high");
+        });
+
+        /*send a low throttle signal*/
+        self.throttle_low.click(function(e){
+            e.preventDefault();
+            self.send_message(self, "throttle_low");
+        });
     }
 
-    var onConnect = function (connectionInfo) {
-        console.log("connected");
-        conId = connectionInfo.connectionId;
-        disconnected.disabled = false;
+    GUI.prototype.on_connect = function(self, connectionInfo) {
+        self.conId = connectionInfo.connectionId;
+        self.arduino_console_log(self, "Serial Connected (" + self.conId + ")")
+        self.disconnect.attr("disabled", false);
 
-        disconnected.addEventListener("click", function (e) {
+        self.disconnect.click(function(e) {
             e.preventDefault();
-            chrome.serial.disconnect(conId, function (result) {
+            chrome.serial.disconnect(self.conId, function (result) {
                 if (result) {
-                    disconnected.disabled = true;
-                    console.log("disconnected");
+                    self.disconnect.attr("disabled", true);
+                    self.arduino_console_log(self, "Successfully Disconnected");
                 }
             });
-        }, false);
+        });
 
         //listen for data
-        chrome.serial.onReceive.addListener(onReceiveCallback);
+        chrome.serial.onReceive.addListener(function(info) {
+            self.on_receive_callback(self, info);
+        });
+    };
 
-    }
+    GUI.prototype.arduino_console_log = function(self, msg) {
+        self.arduino_console.val(self.arduino_console.val() + '\n' + '>' + msg);
+        //scroll console to bottom
+        self.arduino_console.scrollTop(self.arduino_console[0].scrollHeight - self.arduino_console.height());
+    };
 
-    var ab2str = function (buf) {
+    GUI.prototype.get_devices = function(self) {
+        
+        chrome.serial.getDevices(function (devices) {
+            $.each(devices, function (k,port) {
+                self.select_devices.append($('<option>', {
+                    value: port.path,
+                    text: port.path
+                }));
+            });
+        });
+    };
+    
+    GUI.prototype.send_message = function(self, str) {
+        if(self.conId && self.send_lock){
+            self.send_lock = 0;
+            chrome.serial.send(self.conId, self.str2ab(str+'\n'), function(sendInfo){
+                if(sendInfo.bytesSent > 0){
+                    self.arduino_console_log(self, str);
+                }
+                self.send_lock = 1;
+            });
+        }
+    };
+
+    GUI.prototype.ab2str = function (buf) {
         var bufView = new Uint8Array(buf);
         var encodedString = String.fromCharCode.apply(null, bufView);
         return decodeURIComponent(escape(encodedString));
     };
 
+    /* Converts a string to UTF-8 encoding in a Uint8Array; returns the array buffer. */
+    GUI.prototype.str2ab = function(str) {
+        var encodedString = unescape(encodeURIComponent(str));
+        var bytes = new Uint8Array(encodedString.length);
+        for (var i = 0; i < encodedString.length; ++i) {
+            bytes[i] = encodedString.charCodeAt(i);
+        }
+        return bytes.buffer;
+    };
 
-    stringReceived = '';
-    cube1 = document.getElementById("cube-1");
-    cube2 = document.getElementById("cube-2");
-    cube3 = document.getElementById("cube-3");
-    cube4 = document.getElementById("cube-4");
+    GUI.prototype.on_receive_callback = function (self, info) {
 
-    var onReceiveCallback = function (info) {
-        if (info.connectionId == conId && info.data) {
-            var str = ab2str(info.data);
-            var data;
+        if (info.connectionId == self.conId && info.data) {
+            var str = self.ab2str(info.data);
             if (str.charAt(str.length - 1) === '\n') {
-                stringReceived += str.substring(0, str.length - 1);
-                data = stringReceived.split(",");
-                cube1.style.webkitTransform = "rotateX(" + (-data[0] - 180) + "deg) rotateZ(" + (data[1] - 180) + "deg)";
-                cube2.style.webkitTransform = "rotateX(" + (-data[2] - 180) + "deg) rotateZ(" + (data[3] - 180) + "deg)";
-                cube3.style.webkitTransform = "rotateX(" + (-data[4] - 180) + "deg) rotateZ(" + (data[5] - 180) + "deg)";
-                cube4.style.webkitTransform = "rotateX(" + (-data[6] - 180) + "deg) rotateZ(" + (data[7] - 180) + "deg)";
+                //strip out newline char
+                self.stringReceived += str.substring(0, str.length - 1);
 
-                stringReceived = '';
+                if(self.stringReceived.substring(0, 6) == "Data: " && self.stringReceived.length <= 62){
+                    //split on comma
+                    self.data_rec = self.stringReceived.substring(6).split(",");
+                    console.log(self.data_rec);
+                    //graph data
+                    self.cube1.css("-webkitTransform", "rotateX(" + (-self.data_rec[0] - 180) + "deg) rotateZ(" + (self.data_rec[1] - 180) + "deg)");
+                    self.cube2.css("-webkitTransform", "rotateX(" + (-self.data_rec[2] - 180) + "deg) rotateZ(" + (self.data_rec[3] - 180) + "deg)");
+                    self.cube3.css("-webkitTransform", "rotateX(" + (-self.data_rec[4] - 180) + "deg) rotateZ(" + (self.data_rec[5] - 180) + "deg)");
+                    self.cube4.css("-webkitTransform", "rotateX(" + (-self.data_rec[6] - 180) + "deg) rotateZ(" + (self.data_rec[7] - 180) + "deg)");
+                }else{
+                    self.arduino_console_log(self, self.stringReceived);
+                }
+
+                self.stringReceived = '';
+                
             } else {
-                stringReceived += str;
+                self.stringReceived += str;
             }
         }
-    }
 
-};
+        self.data_rec = [];
+    };
 
-window.addEventListener('DOMContentLoaded', init, false);
+    return GUI;
+
+})(jQuery);
+
+
+
+window.addEventListener('DOMContentLoaded', function(){
+    var gui = new GUI();
+}, false);

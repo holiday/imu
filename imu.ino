@@ -59,6 +59,7 @@ void loop() {
 
     /* print data to processing */
     
+    Serial.print("Data: ");
     Serial.print(gyroXangle); Serial.print(",");
     Serial.print(gyroYangle); Serial.print(",");
 
@@ -70,9 +71,7 @@ void loop() {
     
 
     Serial.print(xAngle); Serial.print(",");
-    Serial.print(yAngle);
-    
-    Serial.print("\n");
+    Serial.println(yAngle);
 
     //listen for incoming messages
     serial_loop();
