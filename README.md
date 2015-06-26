@@ -1,3 +1,6 @@
+Arduino re-implementation of the Quadcopter project:
+https://github.com/tapans/Quadcopter
+
 imu
 ===
 
